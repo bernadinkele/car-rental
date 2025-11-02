@@ -47,7 +47,7 @@ function App() {
           <option value="Basse">Basse</option>
         </select>
         <button className='btn btn-primary' onClick={addTodo}>
-          Ajouter
+          Ajouter {todos.length}
         </button>
 
       </div>
