@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import './index.css';
+import TodoItem from './TodoItem';
+import { Construction } from 'lucide-react';
 
 type Priority = "Urgente" | "Moyenne" | "Basse";
 
@@ -10,46 +12,123 @@ type Todo = {
 }
 
 function App() {
-  const [input , setInput]= useState("");
-   const [priority , setPriority]= useState<Priority>("Moyenne");
-   const savedTodos = localStorage.getItem("todos");
-   const initalTodos = savedTodos? JSON.parse(savedTodos) : [];
-   const [todos ,setTodos]= useState<Todo[]>(initalTodos);
-   useEffect(()=>{
-    localStorage.setItem("todos" , JSON.stringify(todos));
-   }, [todos]);
+  const [input, setInput] = useState("");
+  const [priority, setPriority] = useState<Priority>("Moyenne");
+  const savedTodos = localStorage.getItem("todos");
+  const initalTodos = savedTodos ? JSON.parse(savedTodos) : [];
+  const [todos, setTodos] = useState<Todo[]>(initalTodos);
+  const [filter, setFilter] = useState<Priority | "Tous">("Tous")
+  useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [todos]);
 
-   function addTodo(){
+  function addTodo() {
     console.log("Ajouter une tache");
-    if(input.trim() ===""){
+    if (input.trim() === "") {
       return;
     }
-    const newTodo : Todo ={
-      id:Date.now(),
-      text:input.trim(),
-      priority:priority
+    const newTodo: Todo = {
+      id: Date.now(),
+      text: input.trim(),
+      priority: priority
     }
-    const newTodos = [...todos , newTodo];
+    const newTodos = [...todos, newTodo];
     setTodos(newTodos);
     setInput("");
     setPriority("Moyenne");
     console.log(newTodos);
-   }
+  }
+
+  let filteredTodos: Todo[] = [];
+
+  if (filter === "Tous") {
+    filteredTodos = todos;
+  } else {
+    filteredTodos = todos.filter((todo) => todo.priority === filter);
+  }
+
+
+  const urgentCount = todos.filter((todo) => todo.priority === "Urgente").length;
+  const mediumCount = todos.filter((todo) => todo.priority === "Basse").length;
+  const moyenneCount = todos.filter((todo) => todo.priority === "Moyenne").length;
+  const totalCount = todos.length;
+  function onDelete(id: number): void {
+    const newTodos = todos.filter((todo) => todo.id != id);
+    setTodos(newTodos);
+  }
+
+  const [selectedTodo, setSelectedTodo] = useState<Set<number>>(new Set());
+
+  function toggleSlectedTodo(id: number) {
+    const newSelected = new Set(selectedTodo);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedTodo(newSelected);
+  }
+
+  function finishedSelected() {
+    const newTodos = todos.filter((todo) => {
+      if (selectedTodo.has(todo.id)) {
+        return false;
+      } else {
+        return true;
+      }
+    })
+    setTodos(newTodos);
+    setSelectedTodo(new Set())
+  }
+  //<button className={`btn btn-soft ${filter === "Tous" ? "btn-primary" : ""}`} onClick={() => setFilter("Tous")}>Tous</button>
   return (
     <div className="flex justify-center">
       <div className='w-2/3 flex flex-col gap-4 my-15 bg-base-300 p-5 rounded-2xl'>
-        <div className='flex  gap-4'>
-          <input type="text" className='input w-full' placeholder='Ajouter une tache' value={input} onChange={(e)=>setInput(e.target.value)} />
+        <div className='flex flex-row gap-4 '>
+          <input type="text" className='input w-full' placeholder='Ajouter une tache' value={input} onChange={(e) => setInput(e.target.value)} />
+          <select className='select w-full' value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
+            <option value="Urgente">Urgente</option>
+            <option value="Moyenne">Moyenne</option>
+            <option value="Basse">Basse</option>
+          </select>
+          <button className='btn btn-primary' onClick={addTodo}>
+            Ajouter
+          </button>
         </div>
-        <select className='select w-full' value={priority} onChange={(e)=>setPriority(e.target.value as Priority)}>
-          <option value="Urgente">Urgente</option>
-          <option value="Moyenne">Moyenne</option>
-          <option value="Basse">Basse</option>
-        </select>
-        <button className='btn btn-primary' onClick={addTodo}>
-          Ajouter {todos.length}
-        </button>
+        <div className='flex  flex-row items-center justify-between'>
+          
+            <div className='flex  gap-4'>
+              <button className={`btn btn-soft ${filter === "Tous" ? "btn-primary" : ""}`} onClick={() => setFilter("Tous")}>Tous {totalCount}</button>
+              <button className={`btn btn-soft ${filter === "Urgente" ? "btn-primary" : ""}`} onClick={() => setFilter("Urgente")}>Urgente {urgentCount}</button>
+              <button className={`btn btn-soft ${filter === "Moyenne" ? "btn-primary" : ""}`} onClick={() => setFilter("Moyenne")}>Moyenne {moyenneCount}</button>
+              <button className={`btn btn-soft ${filter === "Basse" ? "btn-primary" : ""}`} onClick={() => setFilter("Basse")}>Basse {mediumCount}</button>
+          </div>
+                      
+            <button onClick={finishedSelected} disabled={selectedTodo.size == 0} className='btn btn-primary'>Finir la selection {selectedTodo.size}</button>
 
+        </div>
+        <div>
+          {filteredTodos.length > 0 ? (
+            <div>
+              <ul className='divide-y divide-primary/20'>
+                {filteredTodos.map((todo) => (
+                  <li key={todo.id}>
+                    <TodoItem todo={todo} onDelete={() => onDelete(todo.id)} isSelected={selectedTodo.has(todo.id)} toggleSelect={() => toggleSlectedTodo(todo.id)} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+
+
+            <div className='flex justify-center items-center flex-col p-5'>
+              <div><Construction strokeWidth={1} className='w-40 h-40 text-primary' /></div>
+              <p className='text-sm'>Aucune tache pour ce filtre</p>
+
+            </div>
+
+          )}
+        </div>
       </div>
     </div>
   )
